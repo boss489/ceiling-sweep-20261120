@@ -1,0 +1,22 @@
+# Verification — 천장 청소반
+
+Project: Godot 4.7.2, native GDScript/Node2D. Run locally with `godot --path .`; exported browser game starts at `web/index.html` (serve over HTTP, not `file://`). No publication was performed.
+
+## Passed
+- `godot --headless --path . --editor --quit`: project/assets imported successfully; script parsed.
+- `godot --headless --path . --script res://tests/logic.gd`: PASS. Assertions cover title/tutorial start, 12 dust (four per section), font glyphs, touch-right hold/release, touch and scripted gravity flips, one-shot dust pickup, save/resume of collection, temporary protection, three-hit failure, restart reset, 20-second section boundaries, nine-dust victory and eight-dust timeout failure.
+- `godot --headless --path . --quit-after 3`: main scene boots without runtime errors.
+- `godot --headless --path . --export-release Web web/index.html`: release export finishes, packing the imported Korean font, four custom WAV cues and `assets/OFL.txt` into `web/index.pck`.
+- Local Python HTTP server on `127.0.0.1:18765`: GET/HEAD of `index.html` and `index.wasm` returned 200; WASM served as `application/wasm`.
+- Local Chromium via browser harness: exported title→tutorial→play clicked on desktop 1280×720 and mobile-emulated 320×568; touch gravity button clicked and cleaner visibly moved toward upper rail. Screenshots in `screenshots/desktop-{title,tutorial,play}.png`, `screenshots/mobile-{title,tutorial,play,gravity-flip}.png`. Portrait UI fits all panels and controls, though small supplemental type is compact at 320 pixels.
+
+## Limitations / caveats
+- The headless `SceneTree` test prints a passing result and exits 0, but Godot emits 15 ObjectDB/4 resource cleanup warnings at shutdown; a separate three-frame main-scene boot emits none. These are test teardown diagnostics, not a claim of a clean test exit.
+- At the initial implementation checkpoint, browser click-through did **not** complete a full 60-second run or verify browser success/failure/save reload; the final-export review below supersedes the 60-second/end-state gap. Save reload, touch hold-to-move, simultaneous multitouch, physical phone, Safari/Firefox and audio playback remain unverified. The browser-harness screenshot after a synthetic held mouse press was inconclusive, so movement is not claimed browser-tested.
+- The local HTTP server is development-only; no remote URL, repository or deployment is asserted.
+
+## Independent-review closure — final export, 2026-11-20
+- Re-ran headless logic (PASS, with the existing 15 ObjectDB/4 resource teardown warnings), clean three-frame boot, and `godot --headless --path . --export-release Web web/index.html` after source/visual changes. `web/OFL.txt` is byte-identical to `assets/OFL.txt` (SHA-256 `a7c73f9521cd646bbdfb6684c99a62311bbd7bce11898dc11ef0b3c69eda1aca`) and local HTTP GET returns 200, 4395 bytes. Include this separate file whenever copying the export quartet.
+- The real final Godot Web export in local Chromium was inspected at 1280×720 and mobile-emulated 320×568. Fresh screenshots: `screenshots/{desktop,mobile}-{success,collision,timeout,retry}-final.png`, plus `screenshots/{desktop,mobile}-play-final.png`, `screenshots/desktop-tutorial-final.png`, `screenshots/mobile-{title,tutorial}-final.png`. Success shows 09/12, 0 hits; collision failure 0/12, 3 hits; timeout failure 0/12, 0 hits; clicking the end-screen button returns to section 1, 00/09, 20 seconds. Browser screenshots visually inspected: no clipping or missing retry glyph (replaced unsupported ↻ with plain Korean).
+- The `?qa=success|collision|timeout` states invoke the **actual GDScript gameplay methods** (`start_game`, `take_hit`, `advance_time`) in the exported WASM, not a substituted HTML/JS scene. QA activation is explicitly localhost-only; remote hosts ignore it. Browser visibility was forced active via Chromium DevTools focus emulation (`document.hidden === false`), then independent unassisted ~60-second runs from title→tutorial→play reached timeout failure on **both** viewports; see `screenshots/{desktop,mobile}-60s-timeout-final.png`. These idle runs do not establish human-driven nine-pickup victory; success state was deterministically seeded.
+- Improved secondary-copy contrast (`BLUE` darkened) and raised mobile tutorial/rail/touch-hint font sizes; inspected 320px results. No visible clipping, but thin small type remains soft in emulated 320px captures. Physical-phone legibility, multitouch, Safari/Firefox and audio remain unverified P2/device follow-ups. No publication performed.
